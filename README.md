@@ -1,7 +1,7 @@
 # Chatbot-Story-To-Movie
 
 ## Project Overview
-The "Chatbot-Story-To-Movie" project is designed to recommend movies based on user-provided descriptions or questions. By leveraging advanced natural language processing (NLP) techniques and embeddings, the system identifies the most relevant movies from a dataset of top-rated films and provides recommendations with detailed explanations.
+The "Chatbot-Story-To-Movie" project utilizes a Retrieval-Augmented Generation (RAG) approach to recommend movies based on user-provided descriptions or questions. By combining advanced natural language processing (NLP) techniques with embeddings, the system retrieves relevant movie descriptions from a dataset of top-rated films and generates detailed recommendations using OpenAI's GPT models. This hybrid method ensures both accuracy and contextual relevance in the recommendations.
 
 ## Objectives
 - Build a movie recommendation system that matches user queries to movie descriptions.
