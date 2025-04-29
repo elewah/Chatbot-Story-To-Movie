@@ -11,26 +11,13 @@ client = Groq(
     api_key=api_key,
 )
 
-# chat_completion = client.chat.completions.create(
-#     messages=[
-#         {
-#             "role": "user",
-#             "content": "Explain the importance of fast language models",
-#         }
-#     ],
-#     model="llama-3.3-70b-versatile",
-# )
-
-# print(chat_completion.choices[0].message.content)
 
 openai.api_base = "https://openai.vocareum.com/v1"
 openai_api_key = os.getenv("OPENAI_API_KEY")
 with st.sidebar:
-    # openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    # "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
+    "⚠️ Note: This is a demo showcasing the application of the RAG (Retrieval-Augmented Generation) approach in a real-world example. Built to highlight the developer's skills."
     "[![View the source code](https://img.shields.io/badge/Source%20Code-GitHub-blue?logo=github&logoColor=white)](https://github.com/elewah/Chatbot-Story-To-Movie)"
-    # "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
-    # Increase the sidebar default width using Streamlit's custom CSS
+
     st.markdown(
         """
         <style>
@@ -65,6 +52,8 @@ with st.sidebar:
 
 st.title("💬 Store To Movie Chatbot")
 
+
+
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", "content": "Hi! I am a chatbot that recommends movies based on your description. How can I assist you today?"}]
 
@@ -95,11 +84,6 @@ if user_prompt := st.chat_input():
 
     Answer:"""
 
-    # Append the prompt to Streamlit's session state messages
-    # st.session_state.messages.append({"role": "user", "content": prompt_template})
-
-    # Display the prompt in the chat interface
-    # st.chat_message("user").write(prompt_template)
 
     # Call the LLM
     response = client.chat.completions.create(
@@ -111,11 +95,3 @@ if user_prompt := st.chat_input():
     st.session_state.messages.append({"role": "assistant", "content": response.choices[0].message.content})
     st.chat_message("assistant").write(response.choices[0].message.content)
 
-    # response = client.chat.completions.create(
-    #     messages=st.session_state.messages,
-    #     model="llama-3.3-70b-versatile",
-    # )
-    # # response = openai.chat.completions.create(model="gpt-3.5-turbo-instruct", messages=st.session_state.messages)
-    # msg = response.choices[0].message.content
-    # st.session_state.messages.append({"role": "assistant", "content": msg})
-    # st.chat_message("assistant").write(msg)
