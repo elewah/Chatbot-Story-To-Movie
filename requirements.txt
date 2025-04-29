@@ -1,5 +1,5 @@
 python-dotenv
-openai
+openai==0.28
 tiktoken
 groq
 scikit-learn
