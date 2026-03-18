@@ -7,17 +7,32 @@ from fastembed import TextEmbedding
 load_dotenv()
 from groq import Groq
 
+MODEL_OPTIONS = {
+    "MiniLM-L6-v2": {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "embeddings_file": "embeddings_minilm.csv",
+    },
+    "BGE-small-en-v1.5": {
+        "model_name": "BAAI/bge-small-en-v1.5",
+        "embeddings_file": "embeddings_bge.csv",
+    },
+}
+
 
 @st.cache_resource
-def load_embedding_model():
-    return TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
+def load_embedding_model(model_name):
+    return TextEmbedding(model_name)
 
-
-embedding_model = load_embedding_model()
 
 with st.sidebar:
     "⚠️ Note: This is a demo showcasing the application of the RAG (Retrieval-Augmented Generation) approach in a real-world example. Built to highlight the developer's skills."
     "[![View the source code](https://img.shields.io/badge/Source%20Code-GitHub-blue?logo=github&logoColor=white)](https://github.com/elewah/Chatbot-Story-To-Movie)"
+
+    selected_model_label = st.radio(
+        "Embedding Model",
+        options=list(MODEL_OPTIONS.keys()),
+        index=1,
+    )
 
     st.markdown(
         """
@@ -51,6 +66,9 @@ with st.sidebar:
         """
     )
 
+selected_config = MODEL_OPTIONS[selected_model_label]
+embedding_model = load_embedding_model(selected_config["model_name"])
+
 st.title("💬 Store To Movie Chatbot")
 
 
@@ -65,7 +83,7 @@ if user_prompt := st.chat_input():
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     st.chat_message("user").write(user_prompt)
     st.session_state.messages.append({"role": "assistant", "content": "Searching for relevant movies..."})
-    df_3movies_list_str = get_relevant_movies(user_prompt, model=embedding_model)
+    df_3movies_list_str = get_relevant_movies(user_prompt, model=embedding_model, embeddings_file=selected_config["embeddings_file"])
     st.session_state.messages.append({"role": "assistant", "content": "Generating response..."})
     print(df_3movies_list_str)
 

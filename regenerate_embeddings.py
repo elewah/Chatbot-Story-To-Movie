@@ -1,19 +1,27 @@
-"""One-time script to regenerate embeddings.csv with fastembed (384-dim) instead of OpenAI (1536-dim)."""
+"""Generate embedding CSVs for both models from the IMDB Top 1000 dataset."""
 
 import pandas as pd
+import kagglehub
 from fastembed import TextEmbedding
 
-# Load current embeddings, drop old embeddings column
-df = pd.read_csv("embeddings.csv", index_col=0)
-df.drop(columns=["embeddings"], inplace=True)
+# Download dataset via kagglehub
+path = kagglehub.dataset_download("harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows")
+df = pd.read_csv(f"{path}/imdb_top_1000.csv")
 
-# Generate new embeddings using fastembed
-model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
 overviews = df["Overview"].fillna("").tolist()
-embeddings = list(model.embed(overviews))
 
-# Store as stringified lists (same format as before)
-df["embeddings"] = [emb.tolist() for emb in embeddings]
+models = {
+    "sentence-transformers/all-MiniLM-L6-v2": "embeddings_minilm.csv",
+    "BAAI/bge-small-en-v1.5": "embeddings_bge.csv",
+}
 
-df.to_csv("embeddings.csv")
-print(f"Done. Shape: {df.shape}, embedding dim: {len(embeddings[0])}")
+for model_name, output_file in models.items():
+    print(f"Generating embeddings with {model_name}...")
+    model = TextEmbedding(model_name)
+    embeddings = list(model.embed(overviews))
+    df_out = df.copy()
+    df_out["embeddings"] = [emb.tolist() for emb in embeddings]
+    df_out.to_csv(output_file, index=False)
+    print(f"  Saved {output_file} — shape: {df_out.shape}, dim: {len(embeddings[0])}")
+
+print("Done.")

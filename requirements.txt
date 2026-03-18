@@ -3,3 +3,4 @@ fastembed
 groq
 scikit-learn
 streamlit
+kagglehub
