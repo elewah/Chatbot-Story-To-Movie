@@ -1,19 +1,20 @@
 import streamlit as st
-# from openai import OpenAI
 from dotenv import load_dotenv
-import openai
 import os
 from movie_search import get_relevant_movies
+from fastembed import TextEmbedding
+
 load_dotenv()
 from groq import Groq
-api_key = os.environ.get("GROQ_API_KEY")
-client = Groq(
-    api_key=api_key,
-)
 
 
-openai.api_base = "https://openai.vocareum.com/v1"
-openai_api_key = os.getenv("OPENAI_API_KEY")
+@st.cache_resource
+def load_embedding_model():
+    return TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
+
+
+embedding_model = load_embedding_model()
+
 with st.sidebar:
     "⚠️ Note: This is a demo showcasing the application of the RAG (Retrieval-Augmented Generation) approach in a real-world example. Built to highlight the developer's skills."
     "[![View the source code](https://img.shields.io/badge/Source%20Code-GitHub-blue?logo=github&logoColor=white)](https://github.com/elewah/Chatbot-Story-To-Movie)"
@@ -35,7 +36,7 @@ with st.sidebar:
         ### Example Usage:
         **User Prompt:** "A movie where a young person who became rich in a short time by making fake cheques"
 
-        **Response:**  
+        **Response:**
         One movie that comes to mind based on your description is "Catch Me If You Can" (2002) directed by Steven Spielberg. The film is based on the true story of Frank Abagnale Jr., played by Leonardo DiCaprio, who becomes a millionaire by writing fake checks and impersonating a pilot, doctor, and lawyer, all before the age of 19.
 
         Another movie that might fit your description is "The Wolf of Wall Street" (2013), also based on a true story. The film, directed by Martin Scorsese, tells the story of Jordan Belfort, played by Leonardo DiCaprio, who becomes a wealthy stockbroker by engaging in fraudulent activities, including writing fake checks.
@@ -61,21 +62,17 @@ for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 if user_prompt := st.chat_input():
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
-
-    # client = OpenAI(api_key=openai_api_key)
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     st.chat_message("user").write(user_prompt)
     st.session_state.messages.append({"role": "assistant", "content": "Searching for relevant movies..."})
-    df_3movies_list_str= get_relevant_movies(user_prompt, embedding_model_name="text-embedding-ada-002")
+    df_3movies_list_str = get_relevant_movies(user_prompt, model=embedding_model)
     st.session_state.messages.append({"role": "assistant", "content": "Generating response..."})
+    print(df_3movies_list_str)
 
     # Create the prompt template
     prompt_template = f"""You are a movie recommendation system. You will be given a list of movies and their descriptions. Based on the descriptions, you will recommend the best movie that matches the user's question.
 
-    The user question is: {user_prompt}  
+    The user question is: {user_prompt}
 
     The list of movies and their descriptions is:
     {df_3movies_list_str}
@@ -85,13 +82,17 @@ if user_prompt := st.chat_input():
     Answer:"""
 
 
-    # Call the LLM
+    # Call the LLM with the prompt template (not raw session messages)
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if not groq_api_key:
+        st.error("Please set the GROQ_API_KEY environment variable.")
+        st.stop()
+    client = Groq(api_key=groq_api_key)
     response = client.chat.completions.create(
-        messages=st.session_state.messages,
+        messages=[{"role": "user", "content": prompt_template}],
         model="llama-3.3-70b-versatile",
     )
 
-    # Optionally, show the model's response
+    # Show the model's response
     st.session_state.messages.append({"role": "assistant", "content": response.choices[0].message.content})
     st.chat_message("assistant").write(response.choices[0].message.content)
-
