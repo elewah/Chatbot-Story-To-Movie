@@ -5,7 +5,7 @@ import streamlit as st
 from sklearn.metrics.pairwise import cosine_distances
 
 
-@st.cache_data
+@st.cache_resource
 def load_embeddings(embeddings_file):
     df = pd.read_csv(embeddings_file)
     df["embeddings"] = df["embeddings"].apply(eval).apply(np.array)
