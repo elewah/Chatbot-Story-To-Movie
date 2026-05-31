@@ -8,13 +8,20 @@ load_dotenv()
 from groq import Groq
 
 MODEL_OPTIONS = {
-    "MiniLM-L6-v2": {
-        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-        "embeddings_file": "embeddings_minilm.csv",
+    "Nomic-embed-text-v1.5": {
+        "model_name": "nomic-ai/nomic-embed-text-v1.5",
+        "embeddings_file": "embeddings_nomic.csv",
+        "query_prefix": "search_query: ",
     },
     "BGE-small-en-v1.5": {
         "model_name": "BAAI/bge-small-en-v1.5",
         "embeddings_file": "embeddings_bge.csv",
+        "query_prefix": "",
+    },
+    "MiniLM-L6-v2": {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "embeddings_file": "embeddings_minilm.csv",
+        "query_prefix": "",
     },
 }
 
@@ -69,7 +76,7 @@ with st.sidebar:
 selected_config = MODEL_OPTIONS[selected_model_label]
 embedding_model = load_embedding_model(selected_config["model_name"])
 
-st.title("💬 Store To Movie Chatbot")
+st.title("💬 Story To Movie Chatbot")
 
 
 
@@ -79,38 +86,41 @@ if "messages" not in st.session_state:
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
+groq_api_key = os.environ.get("GROQ_API_KEY")
+if not groq_api_key:
+    st.error("Please set the GROQ_API_KEY environment variable.")
+    st.stop()
+client = Groq(api_key=groq_api_key)
+
 if user_prompt := st.chat_input():
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     st.chat_message("user").write(user_prompt)
-    st.session_state.messages.append({"role": "assistant", "content": "Searching for relevant movies..."})
-    df_3movies_list_str = get_relevant_movies(user_prompt, model=embedding_model, embeddings_file=selected_config["embeddings_file"])
-    st.session_state.messages.append({"role": "assistant", "content": "Generating response..."})
-    print(df_3movies_list_str)
 
-    # Create the prompt template
+    with st.spinner("Finding relevant movies..."):
+        top_movies = get_relevant_movies(
+            user_prompt,
+            model=embedding_model,
+            embeddings_file=selected_config["embeddings_file"],
+            query_prefix=selected_config["query_prefix"],
+        )
+
     prompt_template = f"""You are a movie recommendation system. You will be given a list of movies and their descriptions. Based on the descriptions, you will recommend the best movie that matches the user's question.
 
     The user question is: {user_prompt}
 
     The list of movies and their descriptions is:
-    {df_3movies_list_str}
+    {top_movies}
 
     You answer the question by giving the name of the movie and a short description of it.
 
     Answer:"""
 
+    with st.spinner("Generating response..."):
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_template}],
+            model="llama-3.3-70b-versatile",
+        )
 
-    # Call the LLM with the prompt template (not raw session messages)
-    groq_api_key = os.environ.get("GROQ_API_KEY")
-    if not groq_api_key:
-        st.error("Please set the GROQ_API_KEY environment variable.")
-        st.stop()
-    client = Groq(api_key=groq_api_key)
-    response = client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt_template}],
-        model="llama-3.3-70b-versatile",
-    )
-
-    # Show the model's response
-    st.session_state.messages.append({"role": "assistant", "content": response.choices[0].message.content})
-    st.chat_message("assistant").write(response.choices[0].message.content)
+    answer = response.choices[0].message.content
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.chat_message("assistant").write(answer)
